@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rfp-agent"
+version = "0.1.0"
+description = "RFP multi-agent workflow with FAISS-backed retrieval."
+requires-python = ">=3.11"
+dependencies = [
+    "agent-framework",
+    "agent-framework-anthropic",
+    "agent-framework-openai",
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "pypdf",
+    "pymupdf4llm",
+    "python-docx",
+    "openpyxl",
+    "pandas",
+    "pydantic-settings",
+    "PyYAML",
+    "langchain-text-splitters",
+    "langchain",
+    "langchain-openai",
+    "langchain-huggingface",
+    "sentence-transformers",
+    "langchain-community",
+    "faiss-cpu",
+]
+
+[tool.setuptools]
+packages = [
+    "agents",
+    "app",
+    "client",
+    "config",
+    "knowledge",
+    "knowledge.indexing",
+    "knowledge.retrieval",
+    "models",
+    "observability",
+    "tools",
+    "utils",
+    "workflow",
+]

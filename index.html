@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AI-Driven RFP Generator</title>
+<style>
+  :root{
+    --bg:#F4F6FA;--surface:#FFFFFF;--border:#DDE1EC;--border2:#C8CDDC;
+    --accent:#2563EB;--accent-dark:#1A4FC0;--violet:#7C3AED;--violet-dark:#6028C0;
+    --green:#16A34A;--green-dark:#0F7A35;--grey:#555E6E;--grey-dark:#3D4452;
+    --danger:#DC2626;--warn:#D97706;--success:#16A34A;
+    --text:#111827;--text2:#374151;--text3:#6B7280;--text4:#9CA3AF;
+    --radius:10px;--shadow:0 2px 12px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* ── Layout ── */
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:14px;padding:0 28px;height:60px;
+    box-shadow:var(--shadow);position:sticky;top:0;z-index:10}
+  .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:var(--text)}
+  .logo span{font-size:22px}
+  .ws-badge{margin-left:auto;display:flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;
+    background:#EEF2FF;color:var(--accent);border:1px solid #C7D2FE}
+  .ws-badge.active{background:#DCFCE7;color:var(--green);border-color:#A7F3D0}
+
+  .layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 60px)}
+
+  /* ── Sidebar ── */
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);
+    padding:24px 20px;display:flex;flex-direction:column;gap:20px}
+  .step-title{font-size:11px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--text3);margin-bottom:10px}
+  .step-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+  .divider{height:1px;background:var(--border)}
+
+  /* ── Buttons ── */
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:10px 16px;border-radius:8px;border:none;
+    font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;
+    letter-spacing:.01em}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn+.btn{margin-top:8px}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover:not(:disabled){background:var(--accent-dark)}
+  .btn-violet{background:var(--violet);color:#fff}
+  .btn-violet:hover:not(:disabled){background:var(--violet-dark)}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-green:hover:not(:disabled){background:var(--green-dark)}
+  .btn-grey{background:var(--grey);color:#fff}
+  .btn-grey:hover:not(:disabled){background:var(--grey-dark)}
+  .btn-danger-outline{background:#FEF2F2;color:var(--danger);border:1px solid #FECACA}
+  .btn-danger-outline:hover:not(:disabled){background:#FEE2E2}
+  .btn-outline{background:#fff;color:var(--text2);border:1px solid var(--border2)}
+  .btn-outline:hover:not(:disabled){background:var(--bg)}
+  .ingest-progress{display:none;margin-top:10px}
+  .ingest-progress.active{display:block}
+  .ingest-progress-label{font-size:12px;font-weight:600;color:var(--green);margin-bottom:6px}
+  .ingest-progress-track{height:7px;overflow:hidden;border-radius:999px;background:#DCFCE7;border:1px solid #BBF7D0}
+  .ingest-progress-bar{width:42%;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),#22C55E);animation:ingest-scroll 1.05s ease-in-out infinite}
+  @keyframes ingest-scroll{0%{transform:translateX(-115%)}100%{transform:translateX(255%)}}
+  .formats{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+  .fmt{font-size:11px;padding:2px 7px;border-radius:4px;
+    background:#EEF2FF;color:var(--accent);font-weight:600;border:1px solid #C7D2FE}
+
+  /* ── Main panel ── */
+  .panel{padding:28px;display:flex;flex-direction:column;gap:20px}
+
+  /* ── Metrics ── */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .metric{background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:16px 18px}
+  .metric-label{font-size:12px;color:var(--text3);margin-bottom:6px}
+  .metric-value{font-size:28px;font-weight:700;color:var(--text)}
+  .metric-value.green{color:var(--green)}
+  .metric-value.red{color:var(--danger)}
+  .metric-value.warn{color:var(--warn)}
+
+  /* ── Drop zone ── */
+  .drop-zone{border:2px dashed var(--border2);border-radius:var(--radius);
+    background:var(--surface);padding:36px 20px;text-align:center;
+    cursor:pointer;transition:all .2s;position:relative}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:#EEF2FF}
+  .drop-zone.disabled{opacity:.4;pointer-events:none}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .drop-icon{font-size:40px;margin-bottom:10px}
+  .drop-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .drop-sub{font-size:13px;color:var(--text3)}
+
+  /* ── Alert ── */
+  .alert{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;
+    border-radius:var(--radius);font-size:13px;line-height:1.6}
+  .alert-icon{font-size:20px;flex-shrink:0}
+  .alert-title{font-weight:700;margin-bottom:2px}
+  .alert-success{background:#F0FDF4;border:1px solid #A7F3D0;color:#065F46}
+  .alert-warning{background:#FFFBEB;border:1px solid #FCD34D;color:#92400E}
+  .alert-danger{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B}
+  .alert-info{background:#EEF2FF;border:1px solid #C7D2FE;color:#1E40AF}
+
+  /* ── File table ── */
+  .table-wrap{background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);overflow:hidden}
+  .table-head{display:grid;grid-template-columns:2fr 80px 90px 130px 36px;
+    background:#F1F5F9;padding:10px 16px;font-size:12px;font-weight:700;
+    color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+  .file-row{display:grid;grid-template-columns:2fr 80px 90px 130px 36px;
+    padding:11px 16px;align-items:center;border-bottom:1px solid var(--border);
+    font-size:13px;transition:background .1s}
+  .file-row:last-child{border-bottom:none}
+  .file-row:hover{background:#F8FAFC}
+  .file-row.ingested{background:#F0FDF4}
+  .file-row.deleted{background:#FEF2F2;opacity:.7}
+  .file-row.dup{background:#FFFBEB}
+  .file-name{display:flex;align-items:center;gap:8px;overflow:hidden}
+  .file-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+  .file-ext{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;
+    background:#EEF2FF;color:var(--accent);flex-shrink:0}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;
+    border-radius:20px;font-size:11px;font-weight:700}
+  .badge-staged{background:#EEF2FF;color:var(--accent)}
+  .badge-ingested{background:#DCFCE7;color:var(--green)}
+  .badge-deleted{background:#FEE2E2;color:var(--danger)}
+  .badge-dup{background:#FEF9C3;color:#A16207}
+  .badge-rejected{background:#FEE2E2;color:var(--danger)}
+  .del-btn{background:none;border:none;cursor:pointer;font-size:16px;
+    color:var(--text4);padding:3px 6px;border-radius:4px}
+  .del-btn:hover{background:#FEE2E2;color:var(--danger)}
+
+  /* ── Modal ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);
+    display:flex;align-items:center;justify-content:center;z-index:100;display:none}
+  .modal-overlay.open{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:28px;width:460px;
+    max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+  .modal-title{font-size:17px;font-weight:700;margin-bottom:6px;
+    display:flex;align-items:center;gap:10px}
+  .modal-body{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:18px}
+  .dup-card{background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;
+    padding:12px 14px;margin:12px 0;font-size:13px}
+  .dup-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-weight:500}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end}
+  .modal-actions .btn{width:auto;padding:9px 22px}
+
+  /* ── Workspace input ── */
+  .input-group{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+  .input-group label{font-size:13px;font-weight:600;color:var(--text2)}
+  .input-group input{padding:10px 12px;border-radius:8px;
+    border:1px solid var(--border2);font-size:14px;color:var(--text);
+    outline:none;transition:border .15s}
+  .input-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #DBEAFE}
+
+  /* ── Log ── */
+  .log-wrap{background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);max-height:180px;overflow-y:auto}
+  .log-row{display:flex;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border);
+    font-size:12px;align-items:flex-start}
+  .log-row:last-child{border-bottom:none}
+  .log-time{color:var(--text4);flex-shrink:0;font-family:monospace}
+  .log-icon{flex-shrink:0}
+  .log-msg{color:var(--text2)}
+
+  .section-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
+  .empty{text-align:center;padding:40px;color:var(--text3);font-size:14px}
+  .empty .big{font-size:36px;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="logo"><span>⚡</span> AI-Driven RFP Generator</div>
+  <div class="ws-badge" id="ws-badge">📁 No workspace</div>
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div>
+      <div class="step-title">① Workspace</div>
+      <div class="step-desc">Create a Case ID folder to begin your RFP session.</div>
+      <button class="btn btn-primary" onclick="openWsModal()">🚀 Start Process</button>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="step-title">② Upload Documents</div>
+      <div class="step-desc">Upload one or more RFP documents. Duplicates detected by content, not just filename.</div>
+      <button class="btn btn-violet" id="btn-upload" onclick="triggerUpload()" disabled>📂 Upload RFP Files</button>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="step-title">③ Run Ingestion</div>
+      <button class="btn btn-green" id="btn-ingest" onclick="runIngestion()" disabled>▶ Run Ingestion Check</button>
+      <div class="ingest-progress" id="ingest-progress" aria-live="polite">
+        <div class="ingest-progress-label" id="ingest-progress-label">Running ingestion check...</div>
+        <div class="ingest-progress-track"><div class="ingest-progress-bar"></div></div>
+      </div>
+      <button class="btn btn-grey" onclick="clearAll()" style="margin-top:8px">🗑 Clear All Files</button>
+    </div>
+    <div class="divider"></div>
+    <div>
+      <div class="step-title">Allowed Formats</div>
+      <div class="formats">
+        <span class="fmt">PDF</span><span class="fmt">DOCX</span><span class="fmt">MD</span>
+        <span class="fmt">XLSX</span><span class="fmt">CSV</span><span class="fmt">PNG</span>
+        <span class="fmt">JPG</span><span class="fmt">GIF</span><span class="fmt">BMP</span>
+        <span class="fmt">TIFF</span><span class="fmt">WEBP</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Panel -->
+  <div class="panel">
+    <!-- Metrics -->
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Staged</div><div class="metric-value" id="m-staged">0</div></div>
+      <div class="metric"><div class="metric-label">Ingested</div><div class="metric-value green" id="m-ingested">0</div></div>
+      <div class="metric"><div class="metric-label">Duplicates</div><div class="metric-value warn" id="m-dups">0</div></div>
+      <div class="metric"><div class="metric-label">Rejected</div><div class="metric-value red" id="m-rejected">0</div></div>
+    </div>
+
+    <!-- Alert -->
+    <div id="alert-area"></div>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone disabled" id="drop-zone">
+      <input type="file" id="file-input" multiple
+        accept=".pdf,.docx,.md,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp"
+        onchange="handleFiles(this.files)" disabled/>
+      <div class="drop-icon">☁️</div>
+      <div class="drop-title">Drop files here or click to browse</div>
+      <div class="drop-sub">PDF · DOCX · MD · XLSX · CSV · Images</div>
+    </div>
+
+    <!-- File Table -->
+    <div id="file-section" style="display:none">
+      <div class="section-title">📄 Uploaded Files</div>
+      <div class="table-wrap">
+        <div class="table-head">
+          <div>File</div><div>Type</div><div>Size</div><div>Status</div><div></div>
+        </div>
+        <div id="file-list"></div>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div id="log-section" style="display:none">
+      <div class="section-title">📋 Activity Log</div>
+      <div class="log-wrap" id="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Workspace Modal -->
+<div class="modal-overlay" id="ws-modal">
+  <div class="modal">
+    <div class="modal-title">📁 Create Workspace</div>
+    <div class="modal-body">Enter a name for this RFP workspace. A folder will be created with this as the Case ID.</div>
+    <div class="input-group">
+      <label for="ws-input">Workspace Name</label>
+      <input type="text" id="ws-input" placeholder="e.g. PG&E_RFP_Q3_2026"
+             onkeydown="if(event.key==='Enter')confirmWs()"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('ws-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmWs()">✅ Create Workspace</button>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate Modal -->
+<div class="modal-overlay" id="dup-modal">
+  <div class="modal">
+    <div class="modal-title">⚠️ Duplicate Content Detected</div>
+    <div class="modal-body" id="dup-body">
+      <div class="dup-card" id="dup-card"></div>
+      Both files contain identical content. What would you like to do?
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="resolveDup('keep')">Keep Both</button>
+      <button class="btn btn-danger-outline" onclick="resolveDup('delete')">🗑 Delete Duplicate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal-overlay" id="err-modal">
+  <div class="modal">
+    <div class="modal-title">❌ Format Not Supported</div>
+    <div class="modal-body" id="err-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal('err-modal')">Got it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';   // same origin
+let dupQueue = [], dupResolve = null, rejectedCount = 0;
+
+// ── Utils ────────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+function log(msg, icon='ℹ️'){
+  const sec = document.getElementById('log-section');
+  const list = document.getElementById('log-list');
+  sec.style.display = '';
+  const t = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  row.innerHTML = `<span class="log-time">${t}</span><span class="log-icon">${icon}</span><span class="log-msg">${msg}</span>`;
+  list.appendChild(row);
+  list.scrollTop = list.scrollHeight;
+}
+
+function setAlert(type, title, body){
+  const icons = {success:'✅',warning:'⚠️',danger:'❌',info:'ℹ️'};
+  document.getElementById('alert-area').innerHTML =
+    `<div class="alert alert-${type}">
+      <span class="alert-icon">${icons[type]}</span>
+      <div><div class="alert-title">${title}</div><div>${body}</div></div>
+    </div>`;
+}
+function clearAlert(){document.getElementById('alert-area').innerHTML='';}
+
+async function api(method, path, body){
+  const opts = {method, headers:{}};
+  if(body instanceof FormData){ opts.body = body; }
+  else if(body){ opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+  const r = await fetch(API+path, opts);
+  if(!r.ok){ const e = await r.json(); throw new Error(e.detail||'API error'); }
+  return r.json();
+}
+
+// ── Workspace ────────────────────────────────────────────────────────────────
+function openWsModal(){
+  document.getElementById('ws-input').value='';
+  openModal('ws-modal');
+  setTimeout(()=>document.getElementById('ws-input').focus(),50);
+}
+
+async function confirmWs(){
+  const name = document.getElementById('ws-input').value.trim();
+  if(!name) return;
+  try{
+    const res = await api('POST','/api/workspace',{name});
+    closeModal('ws-modal');
+    const badge = document.getElementById('ws-badge');
+    badge.textContent = '📂 '+res.name;
+    badge.className = 'ws-badge active';
+    document.getElementById('btn-upload').disabled = false;
+    document.getElementById('file-input').disabled = false;
+    document.getElementById('drop-zone').classList.remove('disabled');
+    setAlert('info','Workspace Created',`<code style="font-size:12px">${res.path}</code>`);
+    log(`Workspace created: ${res.path}`,'📁');
+    rejectedCount=0; updateMetrics({staged:0,ingested:0,dups:0,rejected:0});
+  }catch(e){setAlert('danger','Error',e.message);}
+}
+
+// ── Upload ───────────────────────────────────────────────────────────────────
+function triggerUpload(){document.getElementById('file-input').click();}
+
+async function handleFiles(fileList){
+  if(!fileList.length) return;
+  const fd = new FormData();
+  const rejected = [];
+  const allowed = new Set(['.pdf','.docx','.md','.xlsx','.xls','.csv','.png','.jpg','.jpeg','.gif','.bmp','.tiff','.webp']);
+  Array.from(fileList).forEach(f=>{
+    const ext = '.'+f.name.split('.').pop().toLowerCase();
+    if(!allowed.has(ext)){ rejected.push(f.name); return; }
+    fd.append('files', f);
+  });
+  if(rejected.length){
+    document.getElementById('err-body').innerHTML =
+      `<b>${rejected.length} file(s) rejected:</b><br><br>`+
+      rejected.map(n=>`<span class="fmt" style="margin:3px;display:inline-block">${n}</span>`).join('');
+    openModal('err-modal');
+    rejected.forEach(n=>{ log(`Rejected: ${n} — format not supported`,'❌'); rejectedCount++; });
+  }
+  if([...fd.entries()].length === 0){ document.getElementById('file-input').value=''; refreshFiles(); return; }
+  try{
+    const res = await api('POST','/api/upload',fd);
+    res.results.forEach(r=> log(`Staged: ${r.name}`,'📄'));
+    sessionStorage.setItem('ingest-ready','1');
+    document.getElementById('btn-ingest').disabled = false;
+    refreshFiles();
+  }catch(e){setAlert('danger','Upload Error',e.message);}
+  document.getElementById('file-input').value='';
+}
+
+// ── File list ────────────────────────────────────────────────────────────────
+async function refreshFiles(){
+  const res = await api('GET','/api/files');
+  const files = res.files;
+  const sec = document.getElementById('file-section');
+  const list = document.getElementById('file-list');
+  if(!files.length){sec.style.display='none';updateMetrics({staged:0,ingested:0,dups:0});return;}
+  sec.style.display='';
+  list.innerHTML = files.map(f=>{
+    const badge = badgeHtml(f.status);
+    const delBtn = (f.status==='staged'||f.status==='kept_duplicate')
+      ? `<button class="del-btn" onclick="deleteFile('${f.id}')" title="Remove">🗑</button>` : '<span></span>';
+    return `<div class="file-row ${f.status}" data-id="${f.id}">
+      <div class="file-name"><span class="file-ext">${f.ext}</span><span title="${f.name}">${f.name}</span></div>
+      <div>${f.ext}</div>
+      <div>${f.size}</div>
+      <div>${badge}</div>
+      <div>${delBtn}</div>
+    </div>`;
+  }).join('');
+  const staged = files.filter(f=>f.status==='staged').length;
+  const ingested = files.filter(f=>f.status==='ingested').length;
+  const dups = files.filter(f=>f.status==='kept_duplicate').length;
+  updateMetrics({staged,ingested,dups});
+}
+
+function badgeHtml(status){
+  const map={staged:'badge-staged',ingested:'badge-ingested',deleted:'badge-deleted',
+             kept_duplicate:'badge-dup',rejected:'badge-rejected'};
+  const label={staged:'⏳ Staged',ingested:'✅ Ingested',deleted:'🗑 Deleted',
+               kept_duplicate:'⚠ Duplicate',rejected:'❌ Rejected'};
+  return `<span class="badge ${map[status]||'badge-staged'}">${label[status]||status}</span>`;
+}
+
+function updateMetrics({staged=0,ingested=0,dups=0,rejected}={}){
+  document.getElementById('m-staged').textContent = staged;
+  document.getElementById('m-ingested').textContent = ingested;
+  document.getElementById('m-dups').textContent = dups;
+  if(rejected !== undefined) document.getElementById('m-rejected').textContent = rejected;
+}
+
+async function deleteFile(id){
+  await api('POST','/api/resolve',{file_id:id,action:'delete'});
+  log('File removed','🗑'); refreshFiles();
+}
+
+// ── Ingestion ────────────────────────────────────────────────────────────────
+function setIngestionRunning(isRunning, message='Running ingestion check...'){
+  const progress = document.getElementById('ingest-progress');
+  const label = document.getElementById('ingest-progress-label');
+  const btn = document.getElementById('btn-ingest');
+  progress.classList.toggle('active', isRunning);
+  label.textContent = message;
+  btn.disabled = isRunning || !sessionStorage.getItem('ingest-ready');
+}
+
+async function runIngestion(){
+  clearAlert();
+  sessionStorage.setItem('ingest-ready','1');
+  setIngestionRunning(true);
+  try{
+    const res = await api('POST','/api/ingest');
+    if(res.duplicates.length){
+      dupQueue = [...res.duplicates];
+      setIngestionRunning(true, 'Resolving duplicate documents...');
+      await processDupQueue();
+    } else {
+      setIngestionRunning(true, 'Creating workspace vector index...');
+      await finalizeIngestion();
+    }
+  }catch(e){setAlert('danger','Error',e.message);}
+  finally{setIngestionRunning(false);}
+}
+
+function processDupQueue(){
+  return new Promise((resolve,reject)=>{
+    function next(){
+      if(!dupQueue.length){
+        setIngestionRunning(true, 'Creating workspace vector index...');
+        finalizeIngestion().then(resolve).catch(reject);
+        return;
+      }
+      const dup = dupQueue.shift();
+      document.getElementById('dup-card').innerHTML =
+        `<div class="dup-row">✅ <b>Original:</b> ${dup.original_name}</div>
+         <div class="dup-row">📋 <b>Duplicate:</b> ${dup.duplicate_name}</div>`;
+      openModal('dup-modal');
+      dupResolve = async(action)=>{
+        closeModal('dup-modal');
+        await api('POST','/api/resolve',{file_id:dup.duplicate,action});
+        log(`${action==='delete'?'Deleted':'Kept'} duplicate: ${dup.duplicate_name}`, action==='delete'?'🗑':'⚠️');
+        await refreshFiles();
+        next();
+      };
+    }
+    next();
+  });
+}
+
+function resolveDup(action){if(dupResolve)dupResolve(action);}
+
+async function finalizeIngestion(){
+  const res = await api('POST','/api/finalize');
+  await refreshFiles();
+  sessionStorage.removeItem('ingest-ready');
+  document.getElementById('btn-ingest').disabled = true;
+  const hadDups = dupQueue.length > 0;
+  setAlert('success',
+    '✅ Ingestion Stage Success',
+    `${res.ingested} new file(s) ingested. Total in workspace: <b>${res.total}</b><br>
+     <span style="font-size:12px;opacity:.8">📁 ${res.workspace}</span>`);
+  log(`Ingestion complete — ${res.total} file(s) ready for RFP analysis`,'✅');
+}
+
+async function clearAll(){
+  if(!confirm('Clear all files from this session?')) return;
+  await api('POST','/api/workspace',{name:'_reset_'+Date.now()});
+  document.getElementById('file-list').innerHTML='';
+  document.getElementById('file-section').style.display='none';
+  document.getElementById('log-list').innerHTML='';
+  document.getElementById('log-section').style.display='none';
+  clearAlert();
+  sessionStorage.removeItem('ingest-ready');
+  document.getElementById('btn-ingest').disabled=true;
+  setIngestionRunning(false);
+  rejectedCount=0;
+  updateMetrics({staged:0,ingested:0,dups:0,rejected:0});
+  log('All files cleared','🗑');
+}
+
+// ── Drag & Drop ──────────────────────────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();if(!dz.classList.contains('disabled'))dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag-over');
+  if(dz.classList.contains('disabled'))return;
+  handleFiles(e.dataTransfer.files);
+});
+</script>
+</body>
+</html>

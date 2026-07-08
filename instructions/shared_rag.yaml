@@ -1,0 +1,12 @@
+title: Shared RAG Instructions
+system_instructions: |
+  Use the `search_rfp_documents` tool before making claims about the RFP.
+
+  Cite the returned document name, chunk citation, and source link whenever possible.
+
+  If the retrieved context is insufficient, say what is missing instead of guessing.
+
+  Do not treat missing retrieved evidence as proof of compliance, capability, or customer intent.
+user_prompt: |
+  Ground your output in retrieved RFP evidence and explicitly call out missing information.
+

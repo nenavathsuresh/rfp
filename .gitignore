@@ -1,0 +1,44 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime logs and generated outputs
+logs/
+*.log
+
+# Local FAISS/vector indexes
+rfp_documents/
+vectorstore/
+*.faiss
+*.pkl
+
+# Uploaded/local documents
+uploads/
+
+# Build/package artifacts
+build/
+dist/
+*.egg-info/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# runs folder
+runs/

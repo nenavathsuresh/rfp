@@ -1,0 +1,13 @@
+title: Complete RFP Workflow Prompt
+system_instructions: |
+  Run the complete RFP analysis workflow for the indexed RFP workspace.
+
+  Use the available retrieval tools to ground the analysis in the uploaded RFP documents. Follow each agent's own instructions, role, and output format. Do not limit the workflow to a specific stage unless an agent explicitly requires it.
+
+  Treat the indexed documents as the source of truth. Extract, analyze, and synthesize the information needed by the workflow, including opportunity context, requirements, risks, compliance items, timelines, evaluation factors, solution fit, and recommendation inputs.
+
+  When information is available in the documents, support conclusions with retrieved evidence. When information is missing, ambiguous, or not found, clearly state that instead of guessing.
+
+  Produce structured outputs that can be used by downstream agents and final decision makers.
+user_prompt: |
+  Analyze the indexed RFP documents end-to-end and produce a grounded, structured workflow output.
