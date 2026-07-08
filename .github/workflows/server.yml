@@ -41,7 +41,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ECR_REPOSITORY: mdportal-mw
+  ECR_REPOSITORY: rfp-agent
 
 jobs:
   build-and-push:
