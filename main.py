@@ -36,6 +36,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 @app.post("/api/workspace")
 def create_workspace(req: WorkspaceRequest):
@@ -184,10 +187,8 @@ async def run_workflow(req: WorkflowRunRequest):
         "usage_report": workflow_output["usage_report"],
     }
 
-
 def _sse_event(payload: dict) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=True, default=str)}\n\n"
-
 
 @app.post("/api/workflow/run/stream")
 async def run_workflow_stream(req: WorkflowRunRequest):
@@ -248,7 +249,6 @@ async def run_workflow_stream(req: WorkflowRunRequest):
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-
 @app.post("/api/workflow/respond")
 async def workflow_respond(req: WorkflowHumanResponseRequest):
     queue = workflow_response_queues.get(req.run_id)
@@ -261,7 +261,6 @@ async def workflow_respond(req: WorkflowHumanResponseRequest):
         "text": req.text,
     })
     return {"ok": True}
-
 
 @app.post("/api/chatbot")
 async def chatbot(req: ChatbotRequest):
@@ -294,19 +293,6 @@ async def chatbot(req: ChatbotRequest):
 def list_files():
     return {"files": list(session["files"].values())}
 
-# Serve HTML frontend
-
-@app.get("/", response_class=HTMLResponse)
-def index():
-    html_path = Path(__file__).parent / "index.html"
-    return HTMLResponse(html_path.read_text(encoding="utf-8"))
-
-# Entry point
-
-def open_browser():
-    import time; time.sleep(1.2)
-    webbrowser.open("http://localhost:8000")
 
 if __name__ == "__main__":
-    threading.Thread(target=open_browser, daemon=True).start()
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
