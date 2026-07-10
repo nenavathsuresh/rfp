@@ -25,7 +25,7 @@ COPY observability ./observability
 COPY tools ./tools
 COPY utils ./utils
 COPY workflow ./workflow
-COPY main.py index.html run_analysis.py ./
+COPY main.py ./
 
 RUN python -m pip install --upgrade pip \
     && python -m pip install .
@@ -34,7 +34,5 @@ RUN mkdir -p /app/logs /app/runs
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()" || exit 1
 
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]

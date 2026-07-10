@@ -7,13 +7,13 @@ US-01.4  Detect and Manage Duplicate Documents
 US-01.5  Show Complete Ingestion Status and Failure Summary
 """
 
-import asyncio, json, re, uuid, webbrowser, threading
+import asyncio, json, re, uuid
 from pathlib import Path
 from datetime import datetime
 
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.chatbot import answer_query_from_vector_db
 from app.create_vectordb import create_vector_db
@@ -37,6 +37,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
 
 
 @app.get("/health")
+@app.get("/")
 def health_check():
     return {"status": "ok"}
 
